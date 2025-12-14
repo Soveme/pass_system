@@ -1,0 +1,70 @@
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+
+# Backend tests
+test:backend:
+  stage: test
+  image: python:3.11
+  services:
+    - postgres:15
+    - redis:7
+  variables:
+    POSTGRES_DB: pass_system_test
+    POSTGRES_USER: pass_admin
+    POSTGRES_PASSWORD: test_password
+  script:
+    - cd backend
+    - pip install -r requirements.txt
+    - pytest tests/ -v --cov=app
+  coverage: '/TOTAL.*\s+(\d+%)$/'
+
+# Frontend tests
+test:frontend:
+  stage: test
+  image: node:18-alpine
+  script:
+    - cd frontend-admin
+    - npm install
+    - npm run build
+  artifacts:
+    paths:
+      - frontend-admin/dist/
+
+# Build Docker images
+build:docker:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker build -t pass-system-backend:latest ./backend
+    - docker build -t pass-system-admin:latest ./frontend-admin
+  only:
+    - main
+    - tags
+
+# Deploy to staging
+deploy:staging:
+  stage: deploy
+  image: docker:latest
+  script:
+    - echo "Deploying to staging..."
+  only:
+    - develop
+  when: manual
+
+# Deploy to production
+deploy:production:
+  stage: deploy
+  image: docker:latest
+  script:
+    - echo "Deploying to production..."
+  only:
+    - main
+    - tags
+  when: manual
