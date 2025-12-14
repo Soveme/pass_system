@@ -1,12 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import auth, passes
+from app.routers import auth, passes, admin, scan
 
 app = FastAPI(
     title="Pass System API",
     description="Digital Access Control System with Pass Management",
-    version="0.1.0"
+    version="0.1.0",
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json"
 )
 
 # CORS middleware
@@ -21,6 +23,8 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(passes.router)
+app.include_router(admin.router)
+app.include_router(scan.router)
 
 @app.get("/health")
 async def health_check():
