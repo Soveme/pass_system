@@ -1,11 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.utils import get_openapi
-import os
 
 from app.config import settings
-from app.routers import auth, passes, admin, scan, notifications
+from app.routers import auth, passes, admin, scan, notifications, demo
 from app.middleware.security import SecurityHeadersMiddleware, RequestLoggingMiddleware, RateLimitMiddleware
 
 app = FastAPI(
@@ -37,6 +35,7 @@ app.include_router(passes.router)
 app.include_router(admin.router)
 app.include_router(scan.router)
 app.include_router(notifications.router)
+app.include_router(demo.router)
 
 # Custom OpenAPI schema for better Swagger UI
 def custom_openapi():
@@ -66,5 +65,7 @@ async def root():
         "message": "Pass System API v0.1.0 - Digital Access Control System",
         "docs_url": "/api/docs",
         "openapi_url": "/api/openapi.json",
-        "health_check": "/health"
+        "health_check": "/health",
+        "demo_endpoint": "/api/demo/users",
+        "create_demo_users": "/api/demo/create-demo-users"
     }
