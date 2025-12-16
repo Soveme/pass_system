@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from datetime import timedelta
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.models.user import User, UserRole
@@ -9,6 +10,11 @@ from app.schemas.user_schema import UserCreate, TokenResponse, UserResponse
 from app.utils.security import hash_password, verify_password, create_access_token
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
+
+class LoginRequest(BaseModel):
+    """Login request model"""
+    username: str
+    password: str
 
 @router.post("/register", response_model=TokenResponse)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
@@ -42,6 +48,8 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         data={"sub": user.username, "id": user.id, "role": user.role}
     )
     
+    print(f"[AUDIT] User registered: {user.username}")
+    
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -49,12 +57,12 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     }
 
 @router.post("/login", response_model=TokenResponse)
-async def login(username: str, password: str, db: AsyncSession = Depends(get_db)):
+async def login(credentials: LoginRequest, db: AsyncSession = Depends(get_db)):
     """Login user"""
-    result = await db.execute(select(User).where(User.username == username))
+    result = await db.execute(select(User).where(User.username == credentials.username))
     user = result.scalar_one_or_none()
     
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not verify_password(credentials.password, user.hashed_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials"
@@ -69,6 +77,8 @@ async def login(username: str, password: str, db: AsyncSession = Depends(get_db)
     access_token = create_access_token(
         data={"sub": user.username, "id": user.id, "role": user.role}
     )
+    
+    print(f"[AUDIT] User logged in: {user.username}")
     
     return {
         "access_token": access_token,
