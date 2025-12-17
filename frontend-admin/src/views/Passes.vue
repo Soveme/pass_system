@@ -1,77 +1,132 @@
 <template>
-  <div class="passes-view">
-    <h1>Управление пропусками</h1>
+  <div class="passes-container">
+    <h1>Pass Management</h1>
     
-    <div class="filters-card">
+    <div class="search-bar">
       <input 
-        v-model="searchName" 
+        v-model="searchQuery" 
         type="text" 
-        placeholder="Поиск по имени..."
-        class="search-input"
-      />
-      <input 
-        v-model="searchCompany" 
-        type="text" 
-        placeholder="Поиск по компании..."
-        class="search-input"
-      />
-      <button @click="search" class="btn btn-primary">Поиск</button>
+        placeholder="Search by name or ID"
+        @keyup.enter="searchPasses"
+      >
+      <button @click="searchPasses" class="btn-search">Search</button>
+      <button @click="loadPasses" class="btn-refresh">Refresh</button>
     </div>
-    
-    <div class="table-container">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>ФИО</th>
-            <th>Компания</th>
-            <th>Статус</th>
-            <th>Дата входа</th>
-            <th>Дата выхода</th>
-            <th>Действия</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="pass in passes" :key="pass.id">
-            <td>{{ pass.guest_name }}</td>
-            <td>{{ pass.guest_company || '-' }}</td>
-            <td>
-              <span :class="['status-badge', `status-${pass.status}`]">
-                {{ pass.status }}
-              </span>
-            </td>
-            <td>{{ formatDate(pass.valid_from) }}</td>
-            <td>{{ formatDate(pass.valid_until) }}</td>
-            <td>
-              <button @click="editPass(pass)" class="btn btn-sm btn-primary">Редактировать</button>
-              <button @click="deletePass(pass.id)" class="btn btn-sm btn-danger">Удалить</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+
+    <table class="passes-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Guest Name</th>
+          <th>Company</th>
+          <th>Valid From</th>
+          <th>Valid Until</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="pass in passes" :key="pass.id">
+          <td>{{ pass.uuid }}</td>
+          <td>{{ pass.guest_name }}</td>
+          <td>{{ pass.guest_company }}</td>
+          <td>{{ formatDate(pass.valid_from) }}</td>
+          <td>{{ formatDate(pass.valid_until) }}</td>
+          <td>
+            <span :class="['status', pass.is_active ? 'active' : 'inactive']">
+              {{ pass.is_active ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+          <td>
+            <button @click="editPass(pass)" class="btn-edit">Edit</button>
+            <button @click="deletePass(pass.id)" class="btn-delete">Delete</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Edit Modal -->
+    <div v-if="editingPass" class="modal-overlay" @click="closeEditModal">
+      <div class="modal-content" @click.stop>
+        <h2>Edit Pass</h2>
+        <form @submit.prevent="updatePass">
+          <div class="form-group">
+            <label>Guest Name</label>
+            <input v-model="editingPass.guest_name" type="text">
+          </div>
+          <div class="form-group">
+            <label>Company</label>
+            <input v-model="editingPass.guest_company" type="text">
+          </div>
+          <div class="form-group">
+            <label>Valid Until</label>
+            <input v-model="editingPass.valid_until" type="datetime-local">
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">Save</button>
+            <button type="button" @click="closeEditModal" class="btn-secondary">Cancel</button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
-import dayjs from 'dayjs'
+import { apiClient } from '../services/api'
 
 const passes = ref([])
-const searchName = ref('')
-const searchCompany = ref('')
+const searchQuery = ref('')
+const editingPass = ref(null)
 
-const formatDate = (date) => {
-  return dayjs(date).format('DD.MM.YYYY HH:mm')
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleString()
 }
 
-const search = async () => {
+const loadPasses = async () => {
   try {
-    const params = {}
-    if (searchName.value) params.name = searchName.value
-    if (searchCompany.value) params.company = searchCompany.value
+    const token = localStorage.getItem('token')
+    if (!token) {
+      console.warn('No token found')
+      return
+    }
     
-    const response = await axios.get('/api/admin/passes/search', { params })
+    const response = await apiClient.get('/api/passes/', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    passes.value = response.data
+    console.log('Passes loaded:', passes.value)
+  } catch (error) {
+    console.error('Failed to load passes:', error)
+  }
+}
+
+const searchPasses = async () => {
+  if (!searchQuery.value) {
+    loadPasses()
+    return
+  }
+  
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    
+    const response = await apiClient.get('/api/admin/passes/search', {
+      params: {
+        name: searchQuery.value,
+        skip: 0,
+        limit: 100
+      },
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
     passes.value = response.data
   } catch (error) {
     console.error('Search failed:', error)
@@ -79,77 +134,239 @@ const search = async () => {
 }
 
 const editPass = (pass) => {
-  console.log('Edit pass:', pass)
+  editingPass.value = { ...pass }
+  console.log('Edit pass:', editingPass.value)
+}
+
+const closeEditModal = () => {
+  editingPass.value = null
+}
+
+const updatePass = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    
+    const passId = editingPass.value.id
+    const response = await apiClient.put(`/api/passes/${passId}`, editingPass.value, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    console.log('Pass updated:', response.data)
+    closeEditModal()
+    loadPasses()
+  } catch (error) {
+    console.error('Update failed:', error)
+  }
 }
 
 const deletePass = async (passId) => {
-  if (confirm('Вы уверены?')) {
-    try {
-      await axios.delete(`/api/passes/${passId}`)
-      passes.value = passes.value.filter(p => p.id !== passId)
-    } catch (error) {
-      console.error('Delete failed:', error)
-    }
+  if (!confirm('Are you sure you want to delete this pass?')) {
+    return
+  }
+  
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    
+    const response = await apiClient.delete(`/api/passes/${passId}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    console.log('Pass deleted:', response.data)
+    loadPasses()
+  } catch (error) {
+    console.error('Delete failed:', error)
   }
 }
 
 onMounted(() => {
-  search()
+  loadPasses()
 })
 </script>
 
 <style scoped>
-.passes-view {
-  max-width: 1200px;
+.passes-container {
+  padding: 20px;
 }
 
-.filters-card {
-  background-color: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  margin-bottom: 2rem;
+h1 {
+  margin-bottom: 20px;
+}
+
+.search-bar {
+  margin-bottom: 20px;
   display: flex;
-  gap: 1rem;
+  gap: 10px;
 }
 
-.search-input {
+.search-bar input {
   flex: 1;
-  padding: 0.75rem;
+  padding: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
 }
 
-.table-container {
-  overflow-x: auto;
+.btn-search, .btn-refresh {
+  padding: 10px 20px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
-.table {
+.btn-search:hover, .btn-refresh:hover {
+  background: #0056b3;
+}
+
+.passes-table {
   width: 100%;
-  background-color: white;
   border-collapse: collapse;
+  background: white;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.875rem;
-  font-weight: 500;
+.passes-table th {
+  background: #f8f9fa;
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid #dee2e6;
 }
 
-.status-active {
-  background-color: #d4edda;
+.passes-table td {
+  padding: 15px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.passes-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status.active {
+  background: #d4edda;
   color: #155724;
 }
 
-.status-expired {
-  background-color: #f8d7da;
+.status.inactive {
+  background: #f8d7da;
   color: #721c24;
 }
 
-.btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+.btn-edit, .btn-delete {
+  padding: 6px 12px;
+  margin-right: 5px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-edit {
+  background: #28a745;
+  color: white;
+}
+
+.btn-edit:hover {
+  background: #218838;
+}
+
+.btn-delete {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #c82333;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+}
+
+.modal-content h2 {
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+.btn-primary, .btn-secondary {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #0056b3;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #5a6268;
 }
 </style>

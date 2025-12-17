@@ -1,32 +1,22 @@
 <template>
   <div class="dashboard">
-    <h1>Панель управления</h1>
-    
+    <h1>Dashboard</h1>
     <div class="stats-grid">
       <div class="stat-card">
-        <h3>Активные пропуска</h3>
-        <p class="stat-value">{{ stats.activePass }}</p>
+        <div class="stat-label">Total Passes</div>
+        <div class="stat-value">{{ statistics.total_passes }}</div>
       </div>
       <div class="stat-card">
-        <h3>Всего пропусков</h3>
-        <p class="stat-value">{{ stats.totalPasses }}</p>
+        <div class="stat-label">Active Passes</div>
+        <div class="stat-value">{{ statistics.active_passes }}</div>
       </div>
       <div class="stat-card">
-        <h3>Посещений сегодня</h3>
-        <p class="stat-value">{{ stats.todayVisits }}</p>
+        <div class="stat-label">Today's Visits</div>
+        <div class="stat-value">{{ statistics.today_visits }}</div>
       </div>
       <div class="stat-card">
-        <h3>Всего посещений</h3>
-        <p class="stat-value">{{ stats.totalVisits }}</p>
-      </div>
-    </div>
-    
-    <div class="quick-actions">
-      <h2>Быстрые действия</h2>
-      <div class="action-buttons">
-        <button @click="goTo('/passes')" class="btn btn-primary">Управление пропусками</button>
-        <button @click="goTo('/statistics')" class="btn btn-primary">Просмотр статистики</button>
-        <button @click="goTo('/audit')" class="btn btn-primary">Журнал аудита</button>
+        <div class="stat-label">Total Visits</div>
+        <div class="stat-value">{{ statistics.total_visits }}</div>
       </div>
     </div>
   </div>
@@ -34,92 +24,77 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import axios from 'axios'
+import { apiClient } from '../services/api'
 
-const router = useRouter()
-const stats = ref({
-  activePass: 0,
-  totalPasses: 0,
-  todayVisits: 0,
-  totalVisits: 0
+const statistics = ref({
+  total_passes: 0,
+  active_passes: 0,
+  today_visits: 0,
+  total_visits: 0
 })
 
-const loadStats = async () => {
+const loadStatistics = async () => {
   try {
-    const response = await axios.get('/api/admin/statistics')
-    stats.value = response.data
+    const token = localStorage.getItem('token')
+    if (!token) {
+      console.warn('No token found')
+      return
+    }
+    
+    const response = await apiClient.get('/api/admin/statistics', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    statistics.value = response.data
+    console.log('Statistics loaded:', statistics.value)
   } catch (error) {
     console.error('Failed to load statistics:', error)
   }
 }
 
-const goTo = (path) => {
-  router.push(path)
-}
-
 onMounted(() => {
-  loadStats()
+  loadStatistics()
 })
 </script>
 
 <style scoped>
 .dashboard {
-  max-width: 1200px;
+  padding: 20px;
 }
 
-.dashboard h1 {
-  color: #2c3e50;
-  margin-bottom: 2rem;
+h1 {
+  margin-bottom: 30px;
+  font-size: 28px;
+  color: #333;
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  gap: 20px;
+  margin-bottom: 30px;
 }
 
 .stat-card {
-  background-color: white;
-  padding: 1.5rem;
+  background: white;
   border-radius: 8px;
+  padding: 20px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-left: 4px solid #007bff;
 }
 
-.stat-card h3 {
-  color: #7f8c8d;
-  font-size: 0.875rem;
-  margin-bottom: 1rem;
-  text-transform: uppercase;
+.stat-label {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 10px;
+  font-weight: 500;
 }
 
 .stat-value {
-  font-size: 2.5rem;
+  font-size: 32px;
   font-weight: bold;
-  color: #2c3e50;
-}
-
-.quick-actions {
-  background-color: white;
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.quick-actions h2 {
-  color: #2c3e50;
-  margin-bottom: 1rem;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.action-buttons .btn {
-  flex: 1;
-  min-width: 200px;
+  color: #007bff;
 }
 </style>
