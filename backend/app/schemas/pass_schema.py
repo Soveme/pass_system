@@ -13,12 +13,12 @@ class PassCreate(BaseModel):
     notes: Optional[str] = None
 
 class PassUpdate(BaseModel):
-    status: Optional[PassStatus] = None
+    guest_name: Optional[str] = None
     guest_company: Optional[str] = None
     guest_phone: Optional[str] = None
     guest_email: Optional[str] = None
     valid_until: Optional[datetime] = None
-    notes: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class PassResponse(BaseModel):
     id: int
@@ -31,6 +31,7 @@ class PassResponse(BaseModel):
     status: PassStatus
     valid_from: datetime
     valid_until: datetime
+    is_active: bool
     notes: Optional[str]
     created_at: datetime
     updated_at: datetime
@@ -47,3 +48,10 @@ class VisitResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+class VerifyPassRequest(BaseModel):
+    qr_code: str
+
+class SendEmailRequest(BaseModel):
+    message: str
+    recipient_email: str

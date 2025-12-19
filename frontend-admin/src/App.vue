@@ -6,8 +6,8 @@
         <span class="badge">Admin Panel</span>
       </div>
       <div class="navbar-menu">
-        <router-link to="/" class="nav-link">Пропуска</router-link>
-        <router-link to="/statistics" class="nav-link">Статистика</router-link>
+        <router-link to="/" class="nav-link">Статистика</router-link>
+        <router-link to="/passes" class="nav-link">Пропуска</router-link>
         <router-link to="/users" class="nav-link">Пользователи</router-link>
         <router-link to="/audit" class="nav-link">Журнал аудита</router-link>
         <button @click="logout" class="btn btn-logout">Выход</button>

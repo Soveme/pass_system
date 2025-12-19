@@ -7,7 +7,7 @@ export const adminApi = {
   },
 
   async getVisitsLog(filters = {}) {
-    const response = await client.get('/api/admin/visits/log', { params: filters })
+    const response = await client.get('/api/visits/log', { params: filters })
     return response.data
   }
 }

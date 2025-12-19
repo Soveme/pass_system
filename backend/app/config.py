@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     # Database
     database_url: str = os.getenv(
         "DATABASE_URL",
-        "postgresql+asyncpg://pass_admin:secure_password@localhost:5432/pass_system"
+        "postgresql+asyncpg://postgres:secure_password_2025@localhost:5432/postgres"
     )
     
     # Redis
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     encryption_key: str = os.getenv("ENCRYPTION_KEY", "0" * 32)
     
     # CORS
-    cors_origins: list = ["http://localhost:5173", "http://localhost:3000"]
+    cors_origins: list = ["http://localhost:5173", "http://localhost:3000", "https://qdgj4u-5-140-6-221.ru.tuna.am", "https://brqj3q-5-140-6-221.ru.tuna.am", "https://vo9ksn-5-140-6-221.ru.tuna.am"]
     
     # Environment
     environment: str = os.getenv("ENVIRONMENT", "development")

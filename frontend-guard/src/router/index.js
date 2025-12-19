@@ -26,7 +26,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  const token = localStorage.getItem('guard_token')
+  const token = localStorage.getItem('token')
   
   if (to.meta.requiresAuth && !token) {
     next('/login')

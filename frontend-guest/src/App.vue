@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-import GuestPortal from './components/GuestPortal.vue'
+import GuestPortal from './views/GuestPortal.vue'
 </script>
 
 <style scoped>
