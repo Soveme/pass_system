@@ -1,6 +1,6 @@
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.backends import default_backend
 import base64
 from app.config import settings
@@ -13,7 +13,7 @@ class DataEncryption:
         # Derive key from settings.encryption_key if needed
         if len(self.key) < 32:
             # Pad or hash the key to 32 bytes for AES-256
-            kdf = PBKDF2(
+            kdf = PBKDF2HMAC(
                 algorithm=hashes.SHA256(),
                 length=32,
                 salt=b'salt_pass_system',

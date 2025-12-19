@@ -11,7 +11,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 onMounted(() => {
-  const token = localStorage.getItem('guard_token')
+  const token = localStorage.getItem('token')
   if (!token && router.currentRoute.value.path !== '/login') {
     router.push('/login')
   }

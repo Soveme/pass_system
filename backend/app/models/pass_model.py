@@ -27,6 +27,7 @@ class Pass(Base):
     status = Column(Enum(PassStatus), default=PassStatus.PENDING, index=True)
     valid_from = Column(DateTime(timezone=True))
     valid_until = Column(DateTime(timezone=True))
+    is_active = Column(Boolean)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now(), server_default=func.now())

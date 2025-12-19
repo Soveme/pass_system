@@ -36,33 +36,28 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import { useAuthStore } from '../stores/auth'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const username = ref('')
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-
 const handleLogin = async () => {
   loading.value = true
   error.value = ''
   
-  try {
-    const response = await axios.post(`${API_URL}/api/auth/login`, {
-      username: username.value,
-      password: password.value
-    })
-    
-    localStorage.setItem('guard_token', response.data.access_token)
+  const success = await authStore.login(username.value, password.value)
+  
+  if (success) {
     router.push('/')
-  } catch (err) {
-    error.value = err.response?.data?.detail || 'Login failed'
-  } finally {
-    loading.value = false
+  } else {
+    error.value = authStore.error
   }
+  
+  loading.value = false
 }
 </script>
 

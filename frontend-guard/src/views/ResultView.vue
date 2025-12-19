@@ -56,7 +56,7 @@ const formatDate = (date) => {
 const checkIn = async () => {
   checkingIn.value = true
   try {
-    const token = localStorage.getItem('guard_token')
+    const token = localStorage.getItem('token')
     const response = await fetch(`${API_URL}/api/scan/check-in`, {
       method: 'POST',
       headers: {
